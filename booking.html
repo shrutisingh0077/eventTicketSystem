@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Book Ticket</title>
+</head>
+<body>
+  <h2>Book Ticket</h2>
+
+  <select id="ticket"></select><br><br>
+  <input id="quantity" type="number" placeholder="Quantity"><br><br>
+
+  <button onclick="book()">Proceed to Payment</button>
+
+  <script>
+    const event_id = localStorage.getItem("event_id");
+    const user_id = localStorage.getItem("user_id");
+
+    fetch(`http://localhost:3000/tickets/${event_id}`)
+      .then(res => res.json())
+      .then(data => {
+        let options = "";
+        data.forEach(t => {
+          options += `<option value="${t.ticket_type_id}">
+            ${t.type_name} - ₹${t.price}
+          </option>`;
+        });
+        ticket.innerHTML = options;
+      });
+
+    function book() {
+      fetch("http://localhost:3000/booking/book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id,
+          event_id,
+          ticket_type_id: ticket.value,
+          quantity: quantity.value
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        localStorage.setItem("booking_id", data.booking_id);
+        localStorage.setItem("amount", data.total_amount);
+        window.location.href = "payment.html";
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Payment</title>
+</head>
+<body>
+  <h2>Payment</h2>
+
+  <button onclick="pay()">Pay Now</button>
+
+  <script>
+    function pay() {
+      fetch("http://localhost:3000/payment/pay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          booking_id: localStorage.getItem("booking_id"),
+          payment_method: "UPI"
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert(data.message);
+        localStorage.clear();
+        window.location.href = "index.html";
+      });
+    }
+  </script>
+</body>
+</html>
