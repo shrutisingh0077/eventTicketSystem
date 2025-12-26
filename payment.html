@@ -1,30 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Payment</title>
+  <meta charset="UTF-8" />
+  <title>Payment | Event Ticket System</title>
 </head>
 <body>
-  <h2>Payment</h2>
 
-  <button onclick="pay()">Pay Now</button>
+  <h2>Complete Payment</h2>
+  <p>Click the button below to pay securely using Razorpay.</p>
+
+  <button onclick="payNow()">Pay Now</button>
+
+  <!-- Razorpay Checkout Script -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
   <script>
-    function pay() {
-      fetch("http://localhost:3000/payment/pay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          booking_id: localStorage.getItem("booking_id"),
-          payment_method: "UPI"
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        alert(data.message);
-        localStorage.clear();
-        window.location.href = "index.html";
-      });
+    async function payNow() {
+      // Values saved during booking
+      const booking_id = localStorage.getItem("booking_id");
+      const amount = localStorage.getItem("amount");
+
+      if (!booking_id || !amount) {
+        alert("Booking data missing. Please book again.");
+        window.location.href = "events.html";
+        return;
+      }
+
+      try {
+        // 1️⃣ Create Razorpay order from backend
+        const response = await fetch(
+          "http://localhost:3000/payment/create-order",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              booking_id: booking_id,
+              amount: amount
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        // 2️⃣ Open Razorpay Checkout
+        const options = {
+          key: data.key, // TEST key from backend
+          amount: data.amount,
+          currency: "INR",
+          name: "Event Ticket Booking",
+          description: "Test Payment",
+          order_id: data.order_id,
+
+          handler: function (response) {
+            // 3️⃣ Verify payment on backend
+            fetch("http://localhost:3000/payment/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                booking_id: booking_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            })
+            .then(res => res.json())
+            .then(result => {
+              alert(result.message);
+              localStorage.clear();
+              window.location.href = "index.html";
+            });
+          },
+
+          theme: {
+            color: "#3399cc"
+          }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+      } catch (err) {
+        console.error(err);
+        alert("Payment failed to start.");
+      }
     }
   </script>
+
 </body>
 </html>
